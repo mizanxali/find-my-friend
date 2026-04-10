@@ -123,9 +123,11 @@ src/
 │   └── useBearing.ts       # Haversine + bearing math
 ├── stores/
 │   └── sessionStore.ts     # Zustand: session, peer, location state
+├── constants/
+│   ├── mesh.ts             # Mesh SDK constants
+│   └── theme.ts            # Theme constants
 ├── utils/
 │   ├── geo.ts              # Haversine, bearing, unit conversion
-│   └── constants.ts        # Update intervals, thresholds
 └── types/
     └── index.ts            # LocationPayload, PeerState, SessionState
 ```

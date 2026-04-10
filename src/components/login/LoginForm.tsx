@@ -1,4 +1,5 @@
 import { useAuth } from "@offline-protocol/id-react-native";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -35,7 +36,7 @@ const LoginForm = () => {
       setIsVerifyingCode(true);
       const user = await verifyCode(email, otp);
       if (user) {
-        console.log("User verified", user);
+        router.replace("/");
       }
     } catch (error) {
       console.error(error);
@@ -87,7 +88,7 @@ const LoginForm = () => {
             autoCorrect={false}
             autoFocus={true}
             returnKeyType="done"
-            onSubmitEditing={() => verifyCode(email, otp)}
+            onSubmitEditing={handleVerifyCode}
           />
           <TouchableOpacity
             className="bg-black text-white border border-black rounded-md p-3 w-full items-center justify-center mt-8"

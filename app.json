@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.anonymous.find-my-friend"
+      "bundleIdentifier": "com.anonymous.find-my-friend",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to scan your friend's QR code for pairing."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,6 +29,12 @@
       "bundler": "metro"
     },
     "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "This app uses the camera to scan your friend's QR code for pairing."
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",

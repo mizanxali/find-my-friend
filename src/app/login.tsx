@@ -1,9 +1,10 @@
-import LoginForm from "@/components/LoginForm";
+import NetworkAnimation from "@/components/common/NetworkAnimation";
+import LoginForm from "@/components/login/LoginForm";
 import { BottomTabInset, Colors, Spacing } from "@/constants/theme";
 import { KeyboardAvoidingView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function Index() {
+export default function LoginScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const insets = {
     ...safeAreaInsets,
@@ -30,6 +31,9 @@ export default function Index() {
           alignItems: "center",
         }}
       >
+        <View className="flex-1 items-center justify-center w-full">
+          <NetworkAnimation />
+        </View>
         <LoginForm />
       </View>
     </KeyboardAvoidingView>

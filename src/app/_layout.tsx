@@ -1,16 +1,35 @@
 import "../../globals.css";
 
-import { OfflineAppProvider } from "@offline-protocol/id-react-native";
+import { OfflineAppProvider, useAuth } from "@offline-protocol/id-react-native";
 import { Stack } from "expo-router";
+
+import { SplashScreenController } from "@/splash";
 
 const PROJECT_ID = "proj_qmdwot1lizwk";
 
 export default function RootLayout() {
   return (
     <OfflineAppProvider projectId={PROJECT_ID}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-      </Stack>
+      <SplashScreenController />
+      <RootNavigator />
     </OfflineAppProvider>
+  );
+}
+
+function RootNavigator() {
+  const { loading, user } = useAuth();
+
+  console.log("Loading", loading);
+  console.log("User", user);
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!loading && !!user}>
+        <Stack.Screen name="(app)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!loading && !user}>
+        <Stack.Screen name="login" />
+      </Stack.Protected>
+    </Stack>
   );
 }
