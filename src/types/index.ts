@@ -1,4 +1,15 @@
-export type PairingMode = "show-qr" | "scan-qr" | "manual";
+export type IncomingConnectionRequest = {
+  sender: string;
+  senderName: string;
+  timestamp: number;
+};
+
+export type DiscoveredNeighbor = {
+  peerId: string;
+  transport: "ble" | "wifi-direct" | "internet";
+  rssi: number | null;
+  discoveredAt: number;
+};
 
 export type LocationPayload = {
   peerId: string;

@@ -35,8 +35,8 @@
 
 ### Screens
 
-- **Home** — start/join a session, show OfflineID QR for pairing
-- **Pairing** — scan peer's QR or tap to pair via BLE proximity
+- **Home** — start/join a session
+- **Pairing** — live list of nearby mesh neighbors; tap one to send a connection request (incoming requests can be accepted/rejected inline)
 - **Finder** — the main compass/arrow UI with distance, accuracy indicator, last-update timestamp
 - **Settings** — update interval, units (metric/imperial), display name
 
@@ -79,10 +79,11 @@ type SessionState = {
 
 ### Peer Discovery & Messaging
 
-- Use Mesh SDK's peer discovery to find nearby devices
-- Pair via QR code exchange (encode peerId + session token)
-- `sendMessage(peerId, JSON.stringify(locationPayload))` — every 1-2s
-- `onMessage(callback)` — parse incoming LocationPayload, update Zustand store
+- Subscribe to `neighbor_discovered` / `neighbor_lost` events to maintain a live list of nearby devices in `sessionStore.neighbors`
+- Pair by tapping a neighbor, which calls `sendConnectionRequest({ recipient, senderName })`
+- Incoming `connection_request_received` events populate `incomingRequest`; user accepts via `acceptConnectionRequest` / rejects via `rejectConnectionRequest`
+- `sendMessage(peerId, JSON.stringify(locationPayload))` — every 1-2s once paired
+- `message_received` listener — parse incoming LocationPayload, update Zustand store
 - SDK handles transport switching (BLE ↔ WiFi Direct) via DORS automatically
 
 ### Reliability
@@ -107,29 +108,34 @@ type SessionState = {
 src/
 ├── app/                    # Expo Router screens
 │   ├── index.tsx           # Home/start screen
-│   ├── pair.tsx            # QR pairing screen
+│   ├── pair.tsx            # Neighbor discovery + connection request screen
 │   ├── find.tsx            # Main finder compass UI
 │   └── settings.tsx        # Preferences
 ├── components/
 │   ├── CompassArrow.tsx    # Animated directional arrow
 │   ├── DistanceLabel.tsx   # Auto-scaling distance display
 │   ├── AccuracyRing.tsx    # GPS accuracy visualization
-│   ├── ConnectionBadge.tsx # BLE/WiFi/Internet + signal strength
-│   └── PeerQR.tsx          # QR code display/scanner
+│   └── pair/
+│       ├── NeighborList.tsx        # Discovered neighbors list, sorted by RSSI
+│       ├── IncomingRequestCard.tsx # Accept/reject incoming connection request
+│       ├── PairHeader.tsx
+│       ├── PairLoadingState.tsx
+│       ├── PairConnectionStatus.tsx
+│       └── ConnectionBadge.tsx     # BLE/WiFi/Internet + signal strength
 ├── hooks/
 │   ├── useLocation.ts      # GPS polling, expo-location wrapper
-│   ├── useMeshPeer.ts      # Mesh SDK send/receive, connection state
+│   ├── useMeshPeer.ts      # Mesh SDK lifecycle, neighbor tracking, messaging
 │   ├── useCompass.ts       # Magnetometer heading
 │   └── useBearing.ts       # Haversine + bearing math
 ├── stores/
-│   └── sessionStore.ts     # Zustand: session, peer, location state
+│   └── sessionStore.ts     # Zustand: session, peer, neighbors, incoming request
 ├── constants/
 │   ├── mesh.ts             # Mesh SDK constants
 │   └── theme.ts            # Theme constants
 ├── utils/
 │   ├── geo.ts              # Haversine, bearing, unit conversion
 └── types/
-    └── index.ts            # LocationPayload, PeerState, SessionState
+    └── index.ts            # LocationPayload, PeerState, DiscoveredNeighbor, IncomingConnectionRequest
 ```
 
 ## Constraints & Known Limits

@@ -11,7 +11,9 @@
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.anonymous.find-my-friend",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to scan your friend's QR code for pairing."
+        "NSBluetoothAlwaysUsageDescription": "Required for offline mesh communication",
+        "NSBluetoothPeripheralUsageDescription": "Required for offline mesh communication",
+        "UIBackgroundModes": ["bluetooth-central", "bluetooth-peripheral"]
       }
     },
     "android": {
@@ -21,7 +23,20 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.findmyfriend",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_ADVERTISE",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.CHANGE_WIFI_STATE",
+        "android.permission.NEARBY_WIFI_DEVICES",
+        "android.permission.INTERNET"
+      ]
     },
     "web": {
       "output": "static",
@@ -29,12 +44,7 @@
       "bundler": "metro"
     },
     "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "This app uses the camera to scan your friend's QR code for pairing."
-        }
-      ],
+      "./plugins/withMeshSdk.js",
       "expo-router",
       [
         "expo-splash-screen",

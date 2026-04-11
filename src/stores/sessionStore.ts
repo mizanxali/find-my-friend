@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { LocationPayload, PeerState } from "@/types";
+import type {
+  DiscoveredNeighbor,
+  IncomingConnectionRequest,
+  LocationPayload,
+  PeerState,
+} from "@/types";
 
 type SessionStore = {
   myLocation: LocationPayload | null;
@@ -7,6 +12,8 @@ type SessionStore = {
   bearing: number | null;
   distance: number | null;
   pairedPeerId: string | null;
+  incomingRequest: IncomingConnectionRequest | null;
+  neighbors: Record<string, DiscoveredNeighbor>;
 
   setMyLocation: (location: LocationPayload) => void;
   setPeerPayload: (payload: LocationPayload) => void;
@@ -15,6 +22,10 @@ type SessionStore = {
   setPeerSignalStrength: (rssi: number | null) => void;
   setBearingAndDistance: (bearing: number, distance: number) => void;
   setPairedPeerId: (peerId: string | null) => void;
+  setIncomingRequest: (request: IncomingConnectionRequest | null) => void;
+  upsertNeighbor: (neighbor: DiscoveredNeighbor) => void;
+  removeNeighbor: (peerId: string) => void;
+  clearNeighbors: () => void;
   reset: () => void;
 };
 
@@ -31,6 +42,8 @@ export const useSessionStore = create<SessionStore>((set) => ({
   bearing: null,
   distance: null,
   pairedPeerId: null,
+  incomingRequest: null,
+  neighbors: {},
 
   setMyLocation: (location) => set({ myLocation: location }),
 
@@ -58,6 +71,23 @@ export const useSessionStore = create<SessionStore>((set) => ({
 
   setPairedPeerId: (peerId) => set({ pairedPeerId: peerId }),
 
+  setIncomingRequest: (request) => set({ incomingRequest: request }),
+
+  upsertNeighbor: (neighbor) =>
+    set((state) => ({
+      neighbors: { ...state.neighbors, [neighbor.peerId]: neighbor },
+    })),
+
+  removeNeighbor: (peerId) =>
+    set((state) => {
+      if (!state.neighbors[peerId]) return state;
+      const next = { ...state.neighbors };
+      delete next[peerId];
+      return { neighbors: next };
+    }),
+
+  clearNeighbors: () => set({ neighbors: {} }),
+
   reset: () =>
     set({
       myLocation: null,
@@ -65,5 +95,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
       bearing: null,
       distance: null,
       pairedPeerId: null,
+      incomingRequest: null,
+      neighbors: {},
     }),
 }));
