@@ -1,5 +1,6 @@
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
+import { SIM_PEER_ID } from "@/hooks/useSimulatedPeer";
 import type { DiscoveredNeighbor } from "@/types";
 
 interface NeighborListProps {
@@ -61,7 +62,9 @@ export default function NeighborList({
                   className="text-base font-semibold text-white"
                   numberOfLines={1}
                 >
-                  {neighbor.peerId}
+                  {neighbor.peerId === SIM_PEER_ID
+                    ? "🧪 Simulated Friend"
+                    : neighbor.peerId}
                 </Text>
                 <Text className="mt-1 text-xs text-white/50">
                   {transportLabel(neighbor.transport)} ·{" "}

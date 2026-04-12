@@ -13,7 +13,7 @@
 - **Mesh Networking**: `@offline-protocol/mesh-sdk` — handles BLE/WiFi Direct peer discovery, messaging, transport switching (DORS)
 - **Identity**: `@offline-protocol/id-react-native` — OfflineID for peer authentication
 - **State**: Zustand (lightweight, no boilerplate)
-- **Compass/Sensors**: `react-native-sensors` (magnetometer for device heading)
+- **Compass/Heading**: `expo-location` `watchHeadingAsync` (fused compass heading, prefers true north)
 - **Location**: `expo-location` (GPS reads — works fully offline, satellite-based)
 - **Maps** (optional, offline): `react-native-maps` with pre-cached tiles or no map (compass-only mode)
 - **Language**: TypeScript (strict mode)
@@ -28,7 +28,7 @@
 2. Send {lat, lng, altitude, accuracy, timestamp} to paired peer via Mesh SDK
 3. Receive peer's coords from Mesh SDK
 4. Compute bearing + distance (Haversine formula)
-5. Read device heading (magnetometer)
+5. Read device heading (expo-location watchHeadingAsync)
 6. Render arrow: rotation = bearing - deviceHeading
 7. Render distance label with unit auto-scaling (m/km)
 ```
@@ -72,7 +72,7 @@ type SessionState = {
 
 - **Haversine distance**: `2 * R * asin(sqrt(sin²(Δlat/2) + cos(lat1)*cos(lat2)*sin²(Δlng/2)))`
 - **Bearing**: `atan2(sin(Δlng)*cos(lat2), cos(lat1)*sin(lat2) - sin(lat1)*cos(lat2)*cos(Δlng))`
-- **Arrow rotation**: `bearing - deviceMagneticHeading` (apply magnetic declination if available)
+- **Arrow rotation**: `bearing - deviceHeading` (uses trueHeading from expo-location when available, falls back to magHeading)
 - All trig in radians, convert to degrees for display
 
 ## Mesh SDK Integration
@@ -125,8 +125,9 @@ src/
 ├── hooks/
 │   ├── useLocation.ts      # GPS polling, expo-location wrapper
 │   ├── useMeshPeer.ts      # Mesh SDK lifecycle, neighbor tracking, messaging
-│   ├── useCompass.ts       # Magnetometer heading
-│   └── useBearing.ts       # Haversine + bearing math
+│   ├── useCompass.ts       # Device heading via expo-location watchHeadingAsync
+│   ├── useBearing.ts       # Haversine + bearing math
+│   └── useSimulatedPeer.ts # Fake peer for testing finder UI without real mesh connection
 ├── stores/
 │   └── sessionStore.ts     # Zustand: session, peer, neighbors, incoming request
 ├── constants/

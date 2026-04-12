@@ -11,6 +11,7 @@ import PairHeader from "@/components/pair/PairHeader";
 import PairLoadingState from "@/components/pair/PairLoadingState";
 import { Colors, Spacing } from "@/constants/theme";
 import { useMeshPeer } from "@/hooks/useMeshPeer";
+import { SIM_PEER_ID, useSimulatedPeer } from "@/hooks/useSimulatedPeer";
 import { useSessionStore } from "@/stores/sessionStore";
 
 export default function PairScreen() {
@@ -24,6 +25,7 @@ export default function PairScreen() {
     sendHeartbeat,
     sendHeartbeatTo,
   } = useMeshPeer();
+  const { connectSimPeer } = useSimulatedPeer();
 
   const pairedPeerId = useSessionStore((s) => s.pairedPeerId);
   const peerConnected = useSessionStore((s) => s.peer.isConnected);
@@ -70,6 +72,11 @@ export default function PairScreen() {
   const connectToPeer = useCallback(
     async (peerId: string) => {
       if (!peerId || peerId === myPeerId) return;
+      // Simulated peer — bypass SDK entirely
+      if (peerId === SIM_PEER_ID) {
+        connectSimPeer();
+        return;
+      }
       setConnectingPeerId(peerId);
       try {
         await sendConnectionRequest(peerId);
@@ -80,7 +87,7 @@ export default function PairScreen() {
         setConnectingPeerId(null);
       }
     },
-    [myPeerId, sendConnectionRequest],
+    [myPeerId, sendConnectionRequest, connectSimPeer],
   );
 
   return (

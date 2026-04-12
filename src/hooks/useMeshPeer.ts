@@ -38,7 +38,10 @@ async function ensureAndroidPermissions(): Promise<boolean> {
     (v) => v === PermissionsAndroid.RESULTS.GRANTED,
   );
   if (!allGranted) {
-    console.warn(`[Mesh][Android ${Platform.Version}] Android permissions not fully granted:`, result);
+    console.warn(
+      `[Mesh][Android ${Platform.Version}] Android permissions not fully granted:`,
+      result,
+    );
   }
   return allGranted;
 }
@@ -92,16 +95,27 @@ export function useMeshPeer() {
     // diagnostic listener — reveals native-side issues (perm, BT, scan, advertise)
     protocol.on("diagnostic", (event: any) => {
       const level = String(event?.level ?? "info").toUpperCase();
-      console.log(`[Mesh][${OS_TAG}][${level}] ${event?.message}`, event?.context ?? "");
+      console.log(
+        `[Mesh][${OS_TAG}][${level}] ${event?.message}`,
+        event?.context ?? "",
+      );
     });
 
     protocol.on("transport_switched", (event) => {
-      console.log(`[Mesh][${OS_TAG}] Transport switched:`, event.type, event.seenAt);
+      console.log(
+        `[Mesh][${OS_TAG}] Transport switched:`,
+        event.type,
+        event.seenAt,
+      );
     });
 
     // listener for incoming messages
     protocol.on<MessageReceivedEvent>("message_received", (event) => {
-      console.log(`[Mesh][${OS_TAG}] Message received from:`, event.sender, event.content);
+      console.log(
+        `[Mesh][${OS_TAG}] Message received from:`,
+        event.sender,
+        event.content,
+      );
     });
 
     // listener for incoming connection requests
@@ -123,7 +137,10 @@ export function useMeshPeer() {
 
     // listener for accepted connections
     protocol.on<ConnectionAcceptedEvent>("connection_accepted", (event) => {
-      console.log(`[Mesh][${OS_TAG}] Connection accepted by:`, event.accepted_by_name);
+      console.log(
+        `[Mesh][${OS_TAG}] Connection accepted by:`,
+        event.accepted_by_name,
+      );
       setPairedPeerId(event.accepted_by);
       setPeerConnected(true);
     });
@@ -173,7 +190,10 @@ export function useMeshPeer() {
         const payload: LocationPayload = JSON.parse(event.content);
         setPeerPayload(payload);
       } catch {
-        console.warn(`[Mesh][${OS_TAG}] Failed to parse location message:`, event.content);
+        console.warn(
+          `[Mesh][${OS_TAG}] Failed to parse location message:`,
+          event.content,
+        );
       }
     });
 
@@ -186,7 +206,10 @@ export function useMeshPeer() {
           console.log(`[Mesh][${OS_TAG}] Bluetooth enable accepted:`, accepted);
         }
       } catch (err) {
-        console.warn(`[Mesh][${OS_TAG}] Failed to check/enable Bluetooth:`, err);
+        console.warn(
+          `[Mesh][${OS_TAG}] Failed to check/enable Bluetooth:`,
+          err,
+        );
       }
     }
 
@@ -198,7 +221,9 @@ export function useMeshPeer() {
     // Not forcing BLE — let SDK use both BLE + WiFi Direct for discovery.
     // Android 36 GATT server identity exchange fails when read by Android 33's
     // BLE stack, so WiFi Direct may succeed where BLE-only doesn't.
-    console.log(`[Mesh][${OS_TAG}] Using default transports (BLE + WiFi Direct)`);
+    console.log(
+      `[Mesh][${OS_TAG}] Using default transports (BLE + WiFi Direct)`,
+    );
 
     return protocol;
   }, [
@@ -228,61 +253,16 @@ export function useMeshPeer() {
       const protocol = protocolRef.current;
       if (!protocol) throw new Error("Protocol not started");
 
-      const MAX_ATTEMPTS = 4;
-      const ACK_TIMEOUT_MS = 2500;
-      const INITIAL_DELAY_MS = 500;
-
-      // Let the GATT layer settle after discovery before pushing a write,
-      // otherwise the first fragment often hits ERROR_GATT_WRITE_REQUEST_BUSY.
-      await new Promise((r) => setTimeout(r, INITIAL_DELAY_MS));
-
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        console.log(
-          `[Mesh][${OS_TAG}] Sending connection request to: ${recipientId} (attempt ${attempt}/${MAX_ATTEMPTS})`,
-        );
-        const response = await protocol.sendConnectionRequest({
-          recipient: recipientId,
-          senderName: userId,
-        });
-        console.log(`[Mesh][${OS_TAG}] Connection request response:`, response);
-
-        const accepted = await new Promise<boolean>((resolve) => {
-          let settled = false;
-          const onAccepted = (event: ConnectionAcceptedEvent) => {
-            if (event.accepted_by !== recipientId) return;
-            if (settled) return;
-            settled = true;
-            protocol.off("connection_accepted", onAccepted);
-            clearTimeout(timer);
-            resolve(true);
-          };
-          const timer = setTimeout(() => {
-            if (settled) return;
-            settled = true;
-            protocol.off("connection_accepted", onAccepted);
-            resolve(false);
-          }, ACK_TIMEOUT_MS);
-          protocol.on<ConnectionAcceptedEvent>(
-            "connection_accepted",
-            onAccepted,
-          );
-        });
-
-        if (accepted) {
-          setPairedPeerId(recipientId);
-          return;
-        }
-
-        console.warn(
-          `[Mesh][${OS_TAG}] No accept within ${ACK_TIMEOUT_MS}ms for ${recipientId}, retrying`,
-        );
-      }
-
-      throw new Error(
-        `Peer ${recipientId} did not accept after ${MAX_ATTEMPTS} attempts`,
+      console.log(
+        `[Mesh][${OS_TAG}] Sending connection request to: ${recipientId}`,
       );
+      const response = await protocol.sendConnectionRequest({
+        recipient: recipientId,
+        senderName: userId,
+      });
+      console.log(`[Mesh][${OS_TAG}] Connection request response:`, response);
     },
-    [userId, setPairedPeerId],
+    [userId],
   );
 
   const acceptConnectionRequest = useCallback(

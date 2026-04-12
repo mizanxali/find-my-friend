@@ -35,7 +35,8 @@
         "android.permission.ACCESS_WIFI_STATE",
         "android.permission.CHANGE_WIFI_STATE",
         "android.permission.NEARBY_WIFI_DEVICES",
-        "android.permission.INTERNET"
+        "android.permission.INTERNET",
+        "android.permission.HIGH_SAMPLING_RATE_SENSORS"
       ]
     },
     "web": {
