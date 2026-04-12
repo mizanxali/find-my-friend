@@ -22,6 +22,7 @@ export default function PairScreen() {
     acceptConnectionRequest,
     rejectConnectionRequest,
     sendHeartbeat,
+    sendHeartbeatTo,
   } = useMeshPeer();
 
   const pairedPeerId = useSessionStore((s) => s.pairedPeerId);
@@ -39,12 +40,31 @@ export default function PairScreen() {
     start().then(() => setMeshStarted(true));
   }, [start]);
 
+  // Navigate to finder screen once paired and connected
+  useEffect(() => {
+    if (pairedPeerId && peerConnected) {
+      router.replace("/(app)/find");
+    }
+  }, [pairedPeerId, peerConnected]);
+
   const neighborList = useMemo(
     () =>
       Object.values(neighbors)
         .filter((n) => n.peerId !== myPeerId)
         .sort((a, b) => (b.rssi ?? -999) - (a.rssi ?? -999)),
     [neighbors, myPeerId],
+  );
+
+  const heartbeatPeer = useCallback(
+    async (peerId: string) => {
+      try {
+        await sendHeartbeatTo(peerId);
+      } catch (error) {
+        console.error("[Pair] Heartbeat failed:", error);
+        Alert.alert("Error", "Failed to send heartbeat.");
+      }
+    },
+    [sendHeartbeatTo],
   );
 
   const connectToPeer = useCallback(
@@ -115,6 +135,7 @@ export default function PairScreen() {
         <NeighborList
           neighbors={neighborList}
           onSelect={connectToPeer}
+          onHeartbeat={heartbeatPeer}
           connectingPeerId={connectingPeerId}
         />
       )}

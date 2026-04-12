@@ -5,6 +5,7 @@ import type { DiscoveredNeighbor } from "@/types";
 interface NeighborListProps {
   neighbors: DiscoveredNeighbor[];
   onSelect: (peerId: string) => void;
+  onHeartbeat: (peerId: string) => void;
   connectingPeerId: string | null;
 }
 
@@ -25,6 +26,7 @@ function transportLabel(transport: DiscoveredNeighbor["transport"]): string {
 export default function NeighborList({
   neighbors,
   onSelect,
+  onHeartbeat,
   connectingPeerId,
 }: NeighborListProps) {
   if (neighbors.length === 0) {
@@ -50,11 +52,9 @@ export default function NeighborList({
         {neighbors.map((neighbor) => {
           const isConnecting = connectingPeerId === neighbor.peerId;
           return (
-            <TouchableOpacity
+            <View
               key={neighbor.peerId}
               className="flex-row items-center justify-between rounded-2xl bg-white/10 p-4"
-              onPress={() => onSelect(neighbor.peerId)}
-              disabled={connectingPeerId !== null}
             >
               <View className="flex-1 pr-3">
                 <Text
@@ -72,13 +72,28 @@ export default function NeighborList({
               {isConnecting ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <View className="rounded-full bg-white px-3 py-1.5">
-                  <Text className="text-xs font-semibold text-black">
-                    Connect
-                  </Text>
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    className="rounded-full bg-blue-500 px-3 py-1.5"
+                    onPress={() => onHeartbeat(neighbor.peerId)}
+                    disabled={connectingPeerId !== null}
+                  >
+                    <Text className="text-xs font-semibold text-white">
+                      Heartbeat
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="rounded-full bg-white px-3 py-1.5"
+                    onPress={() => onSelect(neighbor.peerId)}
+                    disabled={connectingPeerId !== null}
+                  >
+                    <Text className="text-xs font-semibold text-black">
+                      Connect
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
-            </TouchableOpacity>
+            </View>
           );
         })}
       </View>
