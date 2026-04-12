@@ -10,27 +10,26 @@ import {
 import { useBearing } from "@/hooks/useBearing";
 import { useCompass } from "@/hooks/useCompass";
 import { useLocation } from "@/hooks/useLocation";
-import { useMeshPeer } from "@/hooks/useMeshPeer";
 import { SIM_PEER_ID, useSimulatedPeer } from "@/hooks/useSimulatedPeer";
 import { useSessionStore } from "@/stores/sessionStore";
-import { router } from "expo-router";
+import type { LocationPayload } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function FindScreen() {
-  const insets = useSafeAreaInsets();
+type Props = {
+  sendLocation: (payload: LocationPayload) => Promise<void>;
+  onDisconnect: () => void;
+};
 
+export default function FindPhase({ sendLocation, onDisconnect }: Props) {
   const myLocation = useSessionStore((s) => s.myLocation);
   const peer = useSessionStore((s) => s.peer);
   const bearing = useSessionStore((s) => s.bearing);
   const distance = useSessionStore((s) => s.distance);
   const pairedPeerId = useSessionStore((s) => s.pairedPeerId);
-  const reset = useSessionStore((s) => s.reset);
 
   const heading = useCompass();
   const { start: startLocation, stop: stopLocation } = useLocation();
-  const { sendLocation, stop: stopMesh } = useMeshPeer();
   const { startSimulation, stopSimulation } = useSimulatedPeer();
   const isSimulated = pairedPeerId === SIM_PEER_ID;
 
@@ -100,19 +99,11 @@ export default function FindScreen() {
   const handleDisconnect = () => {
     stopLocation();
     stopSimulation();
-    stopMesh();
-    reset();
-    router.replace("/(app)/pair");
+    onDisconnect();
   };
 
   return (
-    <View
-      className="flex-1 bg-black px-6"
-      style={{
-        paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 16,
-      }}
-    >
+    <>
       <View className="items-center mb-2">
         <Text className="text-base text-white/60 font-medium">Finding</Text>
         <Text
@@ -176,6 +167,6 @@ export default function FindScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </>
   );
 }

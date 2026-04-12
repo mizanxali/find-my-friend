@@ -10,7 +10,7 @@ import {
   type NeighborDiscoveredEvent,
   type NeighborLostEvent,
 } from "@offline-protocol/mesh-sdk";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
 
 async function ensureAndroidPermissions(): Promise<boolean> {
@@ -83,8 +83,11 @@ export function useMeshPeer() {
       transports: {
         ble: { enabled: true },
         wifiDirect: { enabled: true },
-        internet: { enabled: true },
+        internet: { enabled: false },
       },
+      // dors: {
+      //   preferOnline: true,
+      // },
       encryption: {
         enabled: false,
         autoKeyExchange: false,
@@ -93,12 +96,8 @@ export function useMeshPeer() {
     });
 
     // diagnostic listener — reveals native-side issues (perm, BT, scan, advertise)
-    protocol.on("diagnostic", (event: any) => {
-      const level = String(event?.level ?? "info").toUpperCase();
-      console.log(
-        `[Mesh][${OS_TAG}][${level}] ${event?.message}`,
-        event?.context ?? "",
-      );
+    protocol.on("diagnostic", (event) => {
+      console.log(`[Mesh][${OS_TAG}] Diagnostic:`, event);
     });
 
     protocol.on("transport_switched", (event) => {
@@ -161,7 +160,8 @@ export function useMeshPeer() {
         rssi: event.rssi ?? null,
         discoveredAt: Date.now(),
       });
-      if (event.peer_id === pairedPeerId) {
+      const currentPaired = useSessionStore.getState().pairedPeerId;
+      if (event.peer_id === currentPaired) {
         setPeerConnected(true);
         setPeerTransport(event.transport as "ble" | "wifi-direct" | "internet");
         if (event.rssi != null) {
@@ -174,18 +174,31 @@ export function useMeshPeer() {
     protocol.on<NeighborLostEvent>("neighbor_lost", (event) => {
       console.log(`[Mesh][${OS_TAG}] Neighbor lost:`, event.peer_id);
       removeNeighbor(event.peer_id);
-      if (event.peer_id === pairedPeerId) {
+      const currentPaired = useSessionStore.getState().pairedPeerId;
+      if (event.peer_id === currentPaired) {
         setPeerConnected(false);
       }
     });
 
-    // listener for incoming location messages + heartbeat
+    // listener for incoming location messages, heartbeat, and connection confirmation
     protocol.on<MessageReceivedEvent>("message_received", (event) => {
       if (event.content === "heartbeat") {
         Alert.alert("Heartbeat received", `From ${event.sender}`);
         return;
       }
-      if (event.sender !== pairedPeerId) return;
+      // Backup for connection_accepted: the acceptor sends this confirmation
+      if (event.content === "connection_confirmed") {
+        console.log(
+          `[Mesh][${OS_TAG}] Connection confirmed message from:`,
+          event.sender,
+        );
+        setPairedPeerId(event.sender);
+        setPeerConnected(true);
+        return;
+      }
+      // Only accept location payloads from the paired peer
+      const currentPairedPeerId = useSessionStore.getState().pairedPeerId;
+      if (event.sender !== currentPairedPeerId) return;
       try {
         const payload: LocationPayload = JSON.parse(event.content);
         setPeerPayload(payload);
@@ -228,7 +241,6 @@ export function useMeshPeer() {
     return protocol;
   }, [
     userId,
-    pairedPeerId,
     setPairedPeerId,
     setPeerPayload,
     setPeerConnected,
@@ -240,8 +252,9 @@ export function useMeshPeer() {
   ]);
 
   const stop = useCallback(async () => {
-    if (protocolRef.current) {
-      await protocolRef.current.stop();
+    const protocol = protocolRef.current ?? protocolInstance;
+    if (protocol) {
+      await protocol.stop();
       protocolRef.current = null;
       protocolInstance = null;
       clearNeighbors();
@@ -250,7 +263,7 @@ export function useMeshPeer() {
 
   const sendConnectionRequest = useCallback(
     async (recipientId: string) => {
-      const protocol = protocolRef.current;
+      const protocol = protocolRef.current ?? protocolInstance;
       if (!protocol) throw new Error("Protocol not started");
 
       console.log(
@@ -267,11 +280,17 @@ export function useMeshPeer() {
 
   const acceptConnectionRequest = useCallback(
     async (senderId: string) => {
-      const protocol = protocolRef.current;
+      const protocol = protocolRef.current ?? protocolInstance;
       if (!protocol) throw new Error("Protocol not started");
       await protocol.acceptConnectionRequest({
         recipient: senderId,
         accepterName: userId,
+      });
+      // Send a backup confirmation message so the sender can detect
+      // acceptance even if the connection_accepted event doesn't arrive
+      await protocol.sendMessage({
+        recipient: senderId,
+        content: "connection_confirmed",
       });
       setIncomingRequest(null);
       setPairedPeerId(senderId);
@@ -282,7 +301,7 @@ export function useMeshPeer() {
 
   const rejectConnectionRequest = useCallback(
     async (senderId: string) => {
-      const protocol = protocolRef.current;
+      const protocol = protocolRef.current ?? protocolInstance;
       if (!protocol) throw new Error("Protocol not started");
       await protocol.rejectConnectionRequest({ recipient: senderId });
       setIncomingRequest(null);
@@ -292,8 +311,9 @@ export function useMeshPeer() {
 
   const sendLocation = useCallback(
     async (payload: LocationPayload) => {
-      const protocol = protocolRef.current;
+      const protocol = protocolRef.current ?? protocolInstance;
       if (!protocol || !pairedPeerId) return;
+      console.log(`[Mesh][${OS_TAG}] Sending location to:`, pairedPeerId);
       await protocol.sendMessage({
         recipient: pairedPeerId,
         content: JSON.stringify(payload),
@@ -303,7 +323,7 @@ export function useMeshPeer() {
   );
 
   const sendHeartbeat = useCallback(async () => {
-    const protocol = protocolRef.current;
+    const protocol = protocolRef.current ?? protocolInstance;
     if (!protocol || !pairedPeerId) return;
     console.log(`[Mesh][${OS_TAG}] Sending heartbeat to:`, pairedPeerId);
     const response = await protocol.sendMessage({
@@ -314,7 +334,7 @@ export function useMeshPeer() {
   }, [pairedPeerId]);
 
   const sendHeartbeatTo = useCallback(async (recipientId: string) => {
-    const protocol = protocolRef.current;
+    const protocol = protocolRef.current ?? protocolInstance;
     if (!protocol) throw new Error("Protocol not started");
     console.log(`[Mesh][${OS_TAG}] Sending heartbeat to:`, recipientId);
     const response = await protocol.sendMessage({
@@ -323,12 +343,6 @@ export function useMeshPeer() {
     });
     console.log(`[Mesh][${OS_TAG}] Heartbeat response:`, response);
   }, []);
-
-  useEffect(() => {
-    return () => {
-      stop();
-    };
-  }, [stop]);
 
   return {
     start,

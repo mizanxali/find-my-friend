@@ -16,7 +16,7 @@ export default function HomeScreen() {
 
   const handleStartSession = () => {
     reset();
-    router.push("/(app)/pair");
+    router.push("/(app)/session");
   };
 
   return (

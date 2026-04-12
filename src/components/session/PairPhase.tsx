@@ -1,31 +1,34 @@
 import { useAuth } from "@offline-protocol/id-react-native";
-import { router } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCallback, useMemo, useState } from "react";
+import { Alert, Text, TouchableOpacity } from "react-native";
 
 import IncomingRequestCard from "@/components/pair/IncomingRequestCard";
 import NeighborList from "@/components/pair/NeighborList";
 import PairConnectionStatus from "@/components/pair/PairConnectionStatus";
 import PairHeader from "@/components/pair/PairHeader";
 import PairLoadingState from "@/components/pair/PairLoadingState";
-import { Colors, Spacing } from "@/constants/theme";
-import { useMeshPeer } from "@/hooks/useMeshPeer";
-import { SIM_PEER_ID, useSimulatedPeer } from "@/hooks/useSimulatedPeer";
 import { useSessionStore } from "@/stores/sessionStore";
 
-export default function PairScreen() {
-  const insets = useSafeAreaInsets();
+type Props = {
+  meshStarted: boolean;
+  sendConnectionRequest: (peerId: string) => Promise<void>;
+  acceptConnectionRequest: (senderId: string) => Promise<void>;
+  rejectConnectionRequest: (senderId: string) => Promise<void>;
+  sendHeartbeat: () => Promise<void>;
+  sendHeartbeatTo: (peerId: string) => Promise<void>;
+  onBack: () => void;
+};
+
+export default function PairPhase({
+  meshStarted,
+  sendConnectionRequest,
+  acceptConnectionRequest,
+  rejectConnectionRequest,
+  sendHeartbeat,
+  sendHeartbeatTo,
+  onBack,
+}: Props) {
   const { user } = useAuth();
-  const {
-    start,
-    sendConnectionRequest,
-    acceptConnectionRequest,
-    rejectConnectionRequest,
-    sendHeartbeat,
-    sendHeartbeatTo,
-  } = useMeshPeer();
-  const { connectSimPeer } = useSimulatedPeer();
 
   const pairedPeerId = useSessionStore((s) => s.pairedPeerId);
   const peerConnected = useSessionStore((s) => s.peer.isConnected);
@@ -33,21 +36,9 @@ export default function PairScreen() {
   const incomingRequest = useSessionStore((s) => s.incomingRequest);
   const neighbors = useSessionStore((s) => s.neighbors);
 
-  const [meshStarted, setMeshStarted] = useState(false);
   const [connectingPeerId, setConnectingPeerId] = useState<string | null>(null);
 
   const myPeerId = user?.username ?? user?.email ?? String(user?.id ?? "");
-
-  useEffect(() => {
-    start().then(() => setMeshStarted(true));
-  }, [start]);
-
-  // Navigate to finder screen once paired and connected
-  useEffect(() => {
-    if (pairedPeerId && peerConnected) {
-      router.replace("/(app)/find");
-    }
-  }, [pairedPeerId, peerConnected]);
 
   const neighborList = useMemo(
     () =>
@@ -72,11 +63,6 @@ export default function PairScreen() {
   const connectToPeer = useCallback(
     async (peerId: string) => {
       if (!peerId || peerId === myPeerId) return;
-      // Simulated peer — bypass SDK entirely
-      if (peerId === SIM_PEER_ID) {
-        connectSimPeer();
-        return;
-      }
       setConnectingPeerId(peerId);
       try {
         await sendConnectionRequest(peerId);
@@ -87,20 +73,12 @@ export default function PairScreen() {
         setConnectingPeerId(null);
       }
     },
-    [myPeerId, sendConnectionRequest, connectSimPeer],
+    [myPeerId, sendConnectionRequest],
   );
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: Colors.dark.background,
-        paddingTop: insets.top + Spacing.three,
-        paddingHorizontal: Spacing.four,
-        paddingBottom: insets.bottom + Spacing.three,
-      }}
-    >
-      <PairHeader onBack={() => router.back()} />
+    <>
+      <PairHeader onBack={onBack} />
 
       {pairedPeerId && (
         <PairConnectionStatus
@@ -146,6 +124,6 @@ export default function PairScreen() {
           connectingPeerId={connectingPeerId}
         />
       )}
-    </View>
+    </>
   );
 }
