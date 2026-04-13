@@ -73,7 +73,8 @@ export function useMeshPeer() {
   const start = useCallback(async () => {
     if (protocolRef.current) return protocolRef.current;
 
-    await ensureAndroidPermissions();
+    const granted = await ensureAndroidPermissions();
+    if (!granted) return null;
 
     const protocol = new OfflineProtocol({
       appId: APP_ID,

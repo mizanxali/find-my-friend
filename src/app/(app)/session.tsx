@@ -31,14 +31,18 @@ export default function SessionScreen() {
   const isFinding = pairedPeerId && peerConnected;
 
   useEffect(() => {
-    start().then(() => setMeshStarted(true));
+    start().then((protocol) => {
+      if (protocol) setMeshStarted(true);
+    });
   }, [start]);
 
   const handleDisconnect = async () => {
     await stop();
     reset();
     setMeshStarted(false);
-    start().then(() => setMeshStarted(true));
+    start().then((protocol) => {
+      if (protocol) setMeshStarted(true);
+    });
   };
 
   return (

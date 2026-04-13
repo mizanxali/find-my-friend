@@ -11,7 +11,7 @@ export function useLocation() {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
       console.warn("[Location] Permission denied");
-      return;
+      return false;
     }
 
     try {

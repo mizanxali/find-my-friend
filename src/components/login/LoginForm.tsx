@@ -1,6 +1,6 @@
 import { useAuth } from "@offline-protocol/id-react-native";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Text,
@@ -18,6 +18,11 @@ const LoginForm = () => {
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
 
   const { sendCode, verifyCode } = useAuth();
+
+  const isValidEmail = useMemo(
+    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    [email],
+  );
 
   const handleSendCode = async () => {
     try {
@@ -63,8 +68,9 @@ const LoginForm = () => {
             returnKeyType="next"
           />
           <TouchableOpacity
-            className="bg-black text-white border border-black rounded-md p-3 w-full items-center justify-center mt-8 mb-8"
+            className={`border rounded-md p-3 w-full items-center justify-center mt-8 mb-8 ${isValidEmail ? "bg-black border-black" : "bg-gray-300 border-gray-300"}`}
             onPress={handleSendCode}
+            disabled={!isValidEmail}
           >
             {isSendingCode ? (
               <ActivityIndicator size="small" color="white" />

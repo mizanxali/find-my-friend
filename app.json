@@ -13,6 +13,7 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Required for offline mesh communication",
         "NSBluetoothPeripheralUsageDescription": "Required for offline mesh communication",
+        "NSLocationWhenInUseUsageDescription": "Required for finding nearby friends",
         "UIBackgroundModes": ["bluetooth-central", "bluetooth-peripheral"]
       }
     },
@@ -45,6 +46,7 @@
       "bundler": "metro"
     },
     "plugins": [
+      "./plugins/withBluetoothNeverForLocation.js",
       "./plugins/withMeshSdk.js",
       "expo-router",
       [
