@@ -1,6 +1,5 @@
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
-import { SIM_PEER_ID } from "@/hooks/useSimulatedPeer";
 import type { DiscoveredNeighbor } from "@/types";
 
 interface NeighborListProps {
@@ -11,17 +10,11 @@ interface NeighborListProps {
 }
 
 function signalLabel(rssi: number | null): string {
-  if (rssi == null) return "—";
+  if (rssi == null) return "-";
   if (rssi >= -60) return "Strong";
   if (rssi >= -75) return "Good";
   if (rssi >= -90) return "Weak";
   return "Faint";
-}
-
-function transportLabel(transport: DiscoveredNeighbor["transport"]): string {
-  if (transport === "wifi-direct") return "Wi-Fi Direct";
-  if (transport === "ble") return "BLE";
-  return "Internet";
 }
 
 export default function NeighborList({
@@ -62,12 +55,9 @@ export default function NeighborList({
                   className="text-base font-semibold text-white"
                   numberOfLines={1}
                 >
-                  {neighbor.peerId === SIM_PEER_ID
-                    ? "🧪 Simulated Friend"
-                    : neighbor.peerId}
+                  {neighbor.peerId}
                 </Text>
                 <Text className="mt-1 text-xs text-white/50">
-                  {transportLabel(neighbor.transport)} ·{" "}
                   {signalLabel(neighbor.rssi)}
                   {neighbor.rssi != null ? ` (${neighbor.rssi} dBm)` : ""}
                 </Text>

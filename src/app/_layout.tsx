@@ -19,9 +19,6 @@ export default function RootLayout() {
 function RootNavigator() {
   const { loading, user } = useAuth();
 
-  console.log("Loading", loading);
-  console.log("User", user);
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!loading && !!user}>

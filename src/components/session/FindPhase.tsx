@@ -10,7 +10,6 @@ import {
 import { useBearing } from "@/hooks/useBearing";
 import { useCompass } from "@/hooks/useCompass";
 import { useLocation } from "@/hooks/useLocation";
-import { SIM_PEER_ID, useSimulatedPeer } from "@/hooks/useSimulatedPeer";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { LocationPayload } from "@/types";
 import { useEffect, useRef, useState } from "react";
@@ -30,8 +29,6 @@ export default function FindPhase({ sendLocation, onDisconnect }: Props) {
 
   const heading = useCompass();
   const { start: startLocation, stop: stopLocation } = useLocation();
-  const { startSimulation, stopSimulation } = useSimulatedPeer();
-  const isSimulated = pairedPeerId === SIM_PEER_ID;
 
   useBearing();
 
@@ -42,25 +39,16 @@ export default function FindPhase({ sendLocation, onDisconnect }: Props) {
     return () => stopLocation();
   }, [startLocation, stopLocation]);
 
-  // Start simulated peer location updates when paired with sim peer
-  useEffect(() => {
-    if (isSimulated) {
-      startSimulation();
-      return () => stopSimulation();
-    }
-  }, [isSimulated, startSimulation, stopSimulation]);
-
   const lastSentRef = useRef(0);
 
   // Only send real location to real peers
   useEffect(() => {
-    if (isSimulated) return;
     if (!myLocation || !pairedPeerId) return;
     const now = Date.now();
     if (now - lastSentRef.current < UPDATE_INTERVAL_MS) return;
     lastSentRef.current = now;
     sendLocation({ ...myLocation, peerId: pairedPeerId });
-  }, [isSimulated, myLocation, pairedPeerId, sendLocation]);
+  }, [myLocation, pairedPeerId, sendLocation]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -98,7 +86,6 @@ export default function FindPhase({ sendLocation, onDisconnect }: Props) {
 
   const handleDisconnect = () => {
     stopLocation();
-    stopSimulation();
     onDisconnect();
   };
 
@@ -110,7 +97,7 @@ export default function FindPhase({ sendLocation, onDisconnect }: Props) {
           className="text-xl font-bold text-white mt-0.5 font-mono"
           numberOfLines={1}
         >
-          {isSimulated ? "Simulated Friend" : (pairedPeerId ?? "—")}
+          {pairedPeerId ?? "-"}
         </Text>
       </View>
 
@@ -129,7 +116,7 @@ export default function FindPhase({ sendLocation, onDisconnect }: Props) {
               You're close!
             </Text>
             <Text className="text-base text-white/60 mt-2">
-              Within {CLOSE_RANGE_METERS}m — look around
+              Within {CLOSE_RANGE_METERS}m - look around
             </Text>
           </View>
         ) : distance != null && bearing != null ? (

@@ -12,8 +12,6 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const reset = useSessionStore((s) => s.reset);
 
-  // const peerId = user?.username ?? user?.email ?? String(user?.id ?? "");
-
   const handleStartSession = () => {
     reset();
     router.push("/(app)/session");

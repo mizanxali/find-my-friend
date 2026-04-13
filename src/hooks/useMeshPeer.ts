@@ -52,8 +52,6 @@ export function getProtocol(): OfflineProtocol | null {
   return protocolInstance;
 }
 
-const OS_TAG = `Android ${Platform.Version}`;
-
 export function useMeshPeer() {
   const { user } = useAuth();
   const protocolRef = useRef<OfflineProtocol | null>(null);
@@ -83,11 +81,8 @@ export function useMeshPeer() {
       transports: {
         ble: { enabled: true },
         wifiDirect: { enabled: true },
-        internet: { enabled: false },
+        internet: { enabled: true },
       },
-      // dors: {
-      //   preferOnline: true,
-      // },
       encryption: {
         enabled: false,
         autoKeyExchange: false,
@@ -95,14 +90,16 @@ export function useMeshPeer() {
       },
     });
 
-    // diagnostic listener — reveals native-side issues (perm, BT, scan, advertise)
-    protocol.on("diagnostic", (event) => {
-      console.log(`[Mesh][${OS_TAG}] Diagnostic:`, event);
+    // diagnostic listener
+    // biome-ignore lint/suspicious/noExplicitAny: type is broken from offline-protocol/mesh-sdk
+    protocol.on("diagnostic", (event: any) => {
+      if (event.level === "warning")
+        console.log(`[Mesh][${userId}] Diagnostic:`, event);
     });
 
     protocol.on("transport_switched", (event) => {
       console.log(
-        `[Mesh][${OS_TAG}] Transport switched:`,
+        `[Mesh][${userId}] Transport switched:`,
         event.type,
         event.seenAt,
       );
@@ -111,7 +108,7 @@ export function useMeshPeer() {
     // listener for incoming messages
     protocol.on<MessageReceivedEvent>("message_received", (event) => {
       console.log(
-        `[Mesh][${OS_TAG}] Message received from:`,
+        `[Mesh][${userId}] Message received from:`,
         event.sender,
         event.content,
       );
@@ -122,7 +119,7 @@ export function useMeshPeer() {
       "connection_request_received",
       (event) => {
         console.log(
-          `[Mesh][${OS_TAG}] Connection request from:`,
+          `[Mesh][${userId}] Connection request from:`,
           event.sender,
           event.sender_name,
         );
@@ -137,7 +134,7 @@ export function useMeshPeer() {
     // listener for accepted connections
     protocol.on<ConnectionAcceptedEvent>("connection_accepted", (event) => {
       console.log(
-        `[Mesh][${OS_TAG}] Connection accepted by:`,
+        `[Mesh][${userId}] Connection accepted by:`,
         event.accepted_by_name,
       );
       setPairedPeerId(event.accepted_by);
@@ -147,7 +144,7 @@ export function useMeshPeer() {
     // listener for neighbor discovery
     protocol.on<NeighborDiscoveredEvent>("neighbor_discovered", (event) => {
       console.log(
-        `[Mesh][${OS_TAG}] Neighbor discovered:`,
+        `[Mesh][${userId}] Neighbor discovered:`,
         event.peer_id,
         "via",
         event.transport,
@@ -172,7 +169,7 @@ export function useMeshPeer() {
 
     // listener for neighbor loss
     protocol.on<NeighborLostEvent>("neighbor_lost", (event) => {
-      console.log(`[Mesh][${OS_TAG}] Neighbor lost:`, event.peer_id);
+      console.log(`[Mesh][${userId}] Neighbor lost:`, event.peer_id);
       removeNeighbor(event.peer_id);
       const currentPaired = useSessionStore.getState().pairedPeerId;
       if (event.peer_id === currentPaired) {
@@ -189,7 +186,7 @@ export function useMeshPeer() {
       // Backup for connection_accepted: the acceptor sends this confirmation
       if (event.content === "connection_confirmed") {
         console.log(
-          `[Mesh][${OS_TAG}] Connection confirmed message from:`,
+          `[Mesh][${userId}] Connection confirmed message from:`,
           event.sender,
         );
         setPairedPeerId(event.sender);
@@ -204,7 +201,7 @@ export function useMeshPeer() {
         setPeerPayload(payload);
       } catch {
         console.warn(
-          `[Mesh][${OS_TAG}] Failed to parse location message:`,
+          `[Mesh][${userId}] Failed to parse location message:`,
           event.content,
         );
       }
@@ -213,14 +210,14 @@ export function useMeshPeer() {
     if (Platform.OS === "android") {
       try {
         const enabled = await protocol.isBluetoothEnabled();
-        console.log(`[Mesh][${OS_TAG}] Bluetooth enabled:`, enabled);
+        console.log(`[Mesh][${userId}] Bluetooth enabled:`, enabled);
         if (!enabled) {
           const accepted = await protocol.requestEnableBluetooth();
-          console.log(`[Mesh][${OS_TAG}] Bluetooth enable accepted:`, accepted);
+          console.log(`[Mesh][${userId}] Bluetooth enable accepted:`, accepted);
         }
       } catch (err) {
         console.warn(
-          `[Mesh][${OS_TAG}] Failed to check/enable Bluetooth:`,
+          `[Mesh][${userId}] Failed to check/enable Bluetooth:`,
           err,
         );
       }
@@ -229,14 +226,7 @@ export function useMeshPeer() {
     await protocol.start();
     protocolRef.current = protocol;
     protocolInstance = protocol;
-    console.log(`[Mesh][${OS_TAG}] Protocol started for user:`, userId);
-
-    // Not forcing BLE — let SDK use both BLE + WiFi Direct for discovery.
-    // Android 36 GATT server identity exchange fails when read by Android 33's
-    // BLE stack, so WiFi Direct may succeed where BLE-only doesn't.
-    console.log(
-      `[Mesh][${OS_TAG}] Using default transports (BLE + WiFi Direct)`,
-    );
+    console.log(`[Mesh][${userId}] Protocol started for user:`, userId);
 
     return protocol;
   }, [
@@ -267,13 +257,13 @@ export function useMeshPeer() {
       if (!protocol) throw new Error("Protocol not started");
 
       console.log(
-        `[Mesh][${OS_TAG}] Sending connection request to: ${recipientId}`,
+        `[Mesh][${userId}] Sending connection request to: ${recipientId}`,
       );
       const response = await protocol.sendConnectionRequest({
         recipient: recipientId,
         senderName: userId,
       });
-      console.log(`[Mesh][${OS_TAG}] Connection request response:`, response);
+      console.log(`[Mesh][${userId}] Connection request response:`, response);
     },
     [userId],
   );
@@ -313,7 +303,7 @@ export function useMeshPeer() {
     async (payload: LocationPayload) => {
       const protocol = protocolRef.current ?? protocolInstance;
       if (!protocol || !pairedPeerId) return;
-      console.log(`[Mesh][${OS_TAG}] Sending location to:`, pairedPeerId);
+      console.log(`[Mesh][${userId}] Sending location to:`, pairedPeerId);
       await protocol.sendMessage({
         recipient: pairedPeerId,
         content: JSON.stringify(payload),
@@ -325,23 +315,23 @@ export function useMeshPeer() {
   const sendHeartbeat = useCallback(async () => {
     const protocol = protocolRef.current ?? protocolInstance;
     if (!protocol || !pairedPeerId) return;
-    console.log(`[Mesh][${OS_TAG}] Sending heartbeat to:`, pairedPeerId);
+    console.log(`[Mesh][${userId}] Sending heartbeat to:`, pairedPeerId);
     const response = await protocol.sendMessage({
       recipient: pairedPeerId,
       content: "heartbeat",
     });
-    console.log(`[Mesh][${OS_TAG}] Heartbeat response:`, response);
+    console.log(`[Mesh][${userId}] Heartbeat response:`, response);
   }, [pairedPeerId]);
 
   const sendHeartbeatTo = useCallback(async (recipientId: string) => {
     const protocol = protocolRef.current ?? protocolInstance;
     if (!protocol) throw new Error("Protocol not started");
-    console.log(`[Mesh][${OS_TAG}] Sending heartbeat to:`, recipientId);
+    console.log(`[Mesh][${userId}] Sending heartbeat to:`, recipientId);
     const response = await protocol.sendMessage({
       recipient: recipientId,
       content: "heartbeat",
     });
-    console.log(`[Mesh][${OS_TAG}] Heartbeat response:`, response);
+    console.log(`[Mesh][${userId}] Heartbeat response:`, response);
   }, []);
 
   return {

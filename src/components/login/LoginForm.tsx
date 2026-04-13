@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -12,9 +11,7 @@ import {
 
 const LoginForm = () => {
   const [step, setStep] = useState<"email" | "otp">("email");
-  const [email, setEmail] = useState(
-    Platform.OS === "ios" ? "mizanalip786@gmail.com" : "alixj.2633@gmail.com",
-  ); //TODO: Change to dynamic email
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
 
   const [isSendingCode, setIsSendingCode] = useState(false);
